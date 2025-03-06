@@ -1,0 +1,244 @@
+---
+title: "Linear Regression R"
+author: "Lakshmi Prasanna Challa"
+date: "2025-02-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+install.packages("ISLR2")
+library(ISLR2)
+```
+
+# Boston Dataset Analysis
+
+### Objective
+
+How can we predict the Median Value of Owner_Occupied Homes using the lower Status
+
+\<what are we analyzing? Why? What insight can we gain from this analysis.
+
+### Data Understand and preparation
+
+\<What kinds of variables do we have? What kind of questions can we answer further with this data?\>
+
+### Data Loading
+
+\<What does the summary say about this date?\>
+
+```{r load.data}
+data(Boston)
+glimpse(Boston)
+
+summary(Boston)
+```
+
+### Data exploration
+
+```{r missing values}
+missing_values = Boston %>%
+  summarise(across(everything(), ~ sum(is.na(.))))
+print(missing_values)
+```
+
+### Train-Test Split
+
+\<How does this technique aid our analysis, especially given new data?\>
+
+```{r train-test}
+set.seed(123) # For reproducibility
+Boston_split = Boston %>%
+  mutate(id = row_number()) %>%
+  sample_frac(0.75)
+
+Boston = Boston %>% mutate(id = row_number())
+
+train_data = Boston_split
+test_data = anti_join(Boston, Boston_split, by = "id") #Remaining 25%
+```
+
+### Exploratory Data Analysis
+
+\<what figures did we build?Why? What information do they convey? How it is important to the analysis?\>
+
+```{r histogram for medv}
+ggplot(Boston, aes(x = medv)) +
+  geom_histogram(fill = "steelblue", binwidth = 2, color = "white") +
+  labs(title = "distribution of Median Home Values",
+       x = "Median value ($1000s)",
+       y = "Count")
+
+```
+
+```{r LSTAT vs MEDV Scatterplot}
+ggplot(Boston, aes(x = lstat, y=medv)) +
+  geom_point(alpha = 0.6, color = 'blue') +
+  labs(title = "Scatterplot: LSTAT vs. MEDV",
+       x = "Lower Status Population",
+       y = "Median Home Value ($1000s)")
+
+```
+
+### Model Implementation & Explanation
+
+\<what model are we using? why does this/these model(s) apply to the data?What are the pros & cons of this type of model? \>
+
+### Perform simple Linear Regression on Training Data
+
+\<Describe the function & model fit. maybe talk about the evaluation metrics?\>
+
+```{r Liunear Regression}
+lm.fit = lm(medv ~ lstat, data = train_data)
+summary(lm.fit)
+```
+
+Could built a scatter plot with this regression line onto it.
+
+### Apply Model to Test Data
+
+\<could interpret the Test MSE\>
+
+```{r apply model to test_data}
+train_mse = mean((train_data$medv - predict(lm.fit, train_data))^2)
+test_mse = mean((test_data$medv - predict(lm.fit, test_data))^2)
+
+print(paste("Training MSE:", round(train_mse, 2)))
+print(paste("Test MSE:", round(test_mse, 2)))
+```
+
+### Simple Linear Regression results & interpretation
+
+\<Overall, how good is this fit? What does it say about the data and the question being asked?\>
+
+### Perform Multiple Linear Regression on Training Data
+
+\<what question does this model answer?\>
+
+```{r}
+lm.multiple.fit = lm(medv ~ lstat + age, data = train_data)  
+summary(lm.multiple.fit)
+```
+
+### Apply the Model to Test Data
+
+```{r}
+train_mse = mean((train_data$medv - predict(lm.multiple.fit, train_data))^2)
+test_mse = mean((test_data$medv - predict(lm.fit, test_data))^2)
+
+print(paste("Training MSE:", round(train_mse, 2)))
+print(paste("Test MSE:", round(test_mse, 2)))
+```
+
+## NHANES Data Analysis
+
+## Objective
+
+please predict BMI using Age, SmokeNow, PhysActive for induviduals between the ages of 18 and 70
+
+## Data understanding & Preparation
+
+## Data loading
+
+```{r}
+#install.packages("NHANES")
+library(NHANES)
+data(NHANES)
+
+SMOKERS = NHANES %>%
+  select(BMI, Age, SmokeNow, PhysActive) %>%
+  filter(Age >= 18 & Age <= 70)
+```
+
+## Data Exploration
+
+```{r}
+missing_values <- SMOKERS %>%
+  summarise(across(everything(), ~ sum(is.na(.))))
+
+print(missing_values)
+```
+
+## Train - Test Split
+
+```{r}
+set.seed(123)
+SMOKERS <- SMOKERS %>% mutate(id = row_number())
+
+SMOKERS_split <- SMOKERS %>%
+  sample_frac(0.75)  # 75% for training data
+
+test_data <- anti_join(SMOKERS, SMOKERS_split, by = "id") 
+train_data <- SMOKERS_split
+```
+
+## Exploratory Data Analysis
+
+```{r}
+library(ggplot2)
+
+ggplot(SMOKERS, aes(x = BMI)) +
+  geom_histogram(fill = "steelblue", binwidth = 5, color = "white") +
+  labs(title = "Distribution of BMI", x = "BMI", y = "Count")
+```
+
+## Scatterplot: Age vs. BMI
+
+This helps in visualizing the relationship between **Age** and **BMI**.
+
+```{r}
+ggplot(SMOKERS, aes(x = Age, y = BMI)) +
+  geom_point(alpha = 0.6, color = 'blue') +
+  labs(title = "Scatterplot: Age vs. BMI", x = "Age", y = "BMI")
+```
+
+## Scatterplot: SmokeNow vs. BMI
+
+```{r}
+ggplot(SMOKERS, aes(x = SmokeNow, y = BMI)) +
+  geom_boxplot(fill = "lightblue", color = "black") +
+  labs(title = "Boxplot: SmokeNow vs. BMI", x = "SmokeNow", y = "BMI")
+```
+
+## Model Implementation
+
+### Perform simple Linear Regression on Training Data
+
+```{r}
+lm.fit <- lm(BMI ~ Age, data = train_data)
+summary(lm.fit)
+```
+
+### Apply Model to Text Data
+
+```{r}
+train_mse = mean((train_data$BMI - predict(lm.fit, train_data))^2)
+test_mse = mean((test_data$BMI - predict(lm.fit, test_data))^2)
+
+print(paste("Training MSE:", round(train_mse, 2)))
+print(paste("Test MSE:", round(test_mse, 2)))
+```
+
+### Simple Linear Regression results & interpretation
+
+### Perform Multiple Linear Regression on Training Data
+
+```{r}
+lm.multiple.fit = lm(BMI ~ Age + SmokeNow + PhysActive, data = train_data)  
+summary(lm.multiple.fit)
+```
+
+### Apply the Model to Test Data
+
+```{r}
+train_mse = mean((train_data$BMI - predict(lm.multiple.fit, train_data))^2)
+test_mse = mean((test_data$BMI - predict(lm.multiple.fit, test_data))^2)
+
+print(paste("Training MSE:", round(train_mse, 2)))
+print(paste("Test MSE:", round(test_mse, 2)))
+
+```
+
+### Multiple Linear Regression results & interpretation
