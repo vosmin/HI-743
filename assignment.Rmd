@@ -1,6 +1,6 @@
 ---
 title: "Linear Regression R"
-author: "Lakshmi Prasanna Challa"
+author: "Vosmin Shaik"
 date: "2025-02-20"
 output: html_document
 ---
@@ -136,11 +136,39 @@ print(paste("Test MSE:", round(test_mse, 2)))
 
 ## Objective
 
-please predict BMI using Age, SmokeNow, PhysActive for induviduals between the ages of 18 and 70
+For those between the ages of **18-70**, this research attempts to predict **BMI** using **Age, Smoking Status (SmokeNow), and Physical Activity(PhysActive)**.
 
-## Data understanding & Preparation
+### 1.1 What are we analyzing?
 
-## Data loading
+We are looking at the effects of physical activity, smoking, and age on BMI.  Given that BMI is a crucial health indicator, knowing these correlations can aid in determining the causes of weight fluctuations and general health hazards.
+
+### 1.2 why are we conducting this analysis?
+
+**Diabetes, heart disease, and hypertension** are among the health hazards linked to an increased BMI.  While physical activity is essential for controlling weight, smoking can affect appetite and metabolism.  We can gain a better understanding of how lifestyle decisions affect BMI variances and general health by looking at these links.
+
+### 1.3 What insights can we gain ?
+
+This analysis looks at **how BMI is affected by age, smoking habits, and physical activity. The goal is to understand how these factors influence body weight**. The results could help create personalized health plans and support public health efforts to encourage healthier living.
+
+## 2 Data understanding & Preparation
+
+### 2.1 Variables in the Dateset:
+
+- BMI: This is the main value we're trying to predict. It tells us a person's body weight in relation to their height.
+- Age: The person's age, between 18 and 70 years old.
+- SmokeNow: Shows whether the person currently smokes (Yes or No).
+- PhysActive: Shows if the person is physically active (Yes or No).
+
+### 2.2 Key questions we can answer:
+
+- Does BMI increase or decrease with age?
+- Is there a noticeable difference in BMI between people who smoke and those who don’t?
+- How does being physically active affect a person’s BMI?
+
+## 3 Data loading
+
+We’re using data from the NHANES package, which includes health info like BMI, age, smoking habits, and physical activity. By looking at a summary of this data, we can see how these values are spread out, check for anything missing, and spot anything unusual. This helps us make sure the data is clean and reliable before we start analyzing it.
+
 
 ```{r}
 #install.packages("NHANES")
@@ -152,7 +180,7 @@ SMOKERS = NHANES %>%
   filter(Age >= 18 & Age <= 70)
 ```
 
-## Data Exploration
+## 4 Data Exploration
 
 ```{r}
 missing_values <- SMOKERS %>%
@@ -161,7 +189,23 @@ missing_values <- SMOKERS %>%
 print(missing_values)
 ```
 
-## Train - Test Split
+## 5. handling missing data.
+
+We handle missing data to avoid bias, loss of information, and 
+poor model performance, ensuring accurate and reliable analysis
+
+```{r}
+# Remove rows with missing or non-finite values
+SMOKERS <- SMOKERS %>%
+  filter(!is.na(BMI) & !is.na(Age) & !is.na(SmokeNow) & !is.na(PhysActive))
+
+# Confirm data cleaning
+print(nrow(SMOKERS))  # Remaining rows after cleaning
+```
+
+## 6. Train - Test Split
+
+We split the data into **two parts — 75% for training and 25% for testing** — so we can see how well our model works on new, unseen data. The training part helps the model learn, and the testing part checks if it can make good predictions. This way, we make sure the model isn’t just memorizing the data, but actually learning useful patterns.
 
 ```{r}
 set.seed(123)
@@ -170,11 +214,15 @@ SMOKERS <- SMOKERS %>% mutate(id = row_number())
 SMOKERS_split <- SMOKERS %>%
   sample_frac(0.75)  # 75% for training data
 
+# The remaining data will be for testing.
+
 test_data <- anti_join(SMOKERS, SMOKERS_split, by = "id") 
 train_data <- SMOKERS_split
 ```
 
-## Exploratory Data Analysis
+## 7 Exploratory Data Analysis
+
+We use histograms, box plots, and scatter plots to understand how the data is spread out, find relationships between variables, and identify patterns. These visuals help guide our analysis.
 
 ```{r}
 library(ggplot2)
@@ -184,7 +232,7 @@ ggplot(SMOKERS, aes(x = BMI)) +
   labs(title = "Distribution of BMI", x = "BMI", y = "Count")
 ```
 
-## Scatterplot: Age vs. BMI
+### 7.1 Scatterplot: Age vs. BMI
 
 This helps in visualizing the relationship between **Age** and **BMI**.
 
@@ -194,7 +242,9 @@ ggplot(SMOKERS, aes(x = Age, y = BMI)) +
   labs(title = "Scatterplot: Age vs. BMI", x = "Age", y = "BMI")
 ```
 
-## Scatterplot: SmokeNow vs. BMI
+### 7.2 Scatterplot: SmokeNow vs. BMI
+
+A scatterplot of SmokeNow vs. BMI shows how smoking status relates to body weight, making it easier to spot any patterns or connections between the two.
 
 ```{r}
 ggplot(SMOKERS, aes(x = SmokeNow, y = BMI)) +
@@ -204,7 +254,14 @@ ggplot(SMOKERS, aes(x = SmokeNow, y = BMI)) +
 
 ## Model Implementation
 
+We use **Simple Linear Regression** because it's a quick and easy way to predict a continuous value using just one variable. It's simple to apply and runs fast, but it can be affected by outliers and only works well if the relationship between the variables is actually linear.
+
 ### Perform simple Linear Regression on Training Data
+
+Simple linear regression draws the best-fit line through the data by keeping the differences between actual and predicted values as small as possible. We measure how well the model works using:
+
+- **Mean Squared Error (MSE):** Shows how far off the predictions are from the actual values on average.
+- **R-squared (R²):** Tells us how much of the variation in the target variable is explained by the model.
 
 ```{r}
 lm.fit <- lm(BMI ~ Age, data = train_data)
@@ -222,6 +279,15 @@ print(paste("Test MSE:", round(test_mse, 2)))
 ```
 
 ### Simple Linear Regression results & interpretation
+
+- **Training MSE: 42.98**  
+  The model has an average squared error of 42.98 on the training set, which shows it fits the data fairly well.
+
+- **Test MSE: 34.98**  
+  The model does a bit better on the test set with an error of 34.98, meaning it makes good predictions on new data.
+
+- **Conclusion:**  
+  The model fits reasonably well and doesn’t show signs of overfitting, since the training and test errors are close. Still, we could improve its performance by adding more variables or trying more advanced models.
 
 ### Perform Multiple Linear Regression on Training Data
 
@@ -242,3 +308,13 @@ print(paste("Test MSE:", round(test_mse, 2)))
 ```
 
 ### Multiple Linear Regression results & interpretation
+
+- **Training MSE: 41.57**  
+  The model's error on the training data is 41.57, which shows a decent fit but with some room to improve.
+
+- **Test MSE: 33.69**  
+  The model performs a bit better on the test data, with an error of 33.69, indicating it handles new data well.
+
+- **Conclusion:**  
+  The Multiple Linear Regression model fits better than the Simple Linear Regression since the test error is lower. It’s not overfitting and generalizes well, but the results could be improved by adding more predictors or using more advanced models.
+
