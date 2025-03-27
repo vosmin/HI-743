@@ -1,0 +1,311 @@
+---
+title: "Linear Regression R"
+author: "Sai Veganti"
+date: "March 11, 2025"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+#install.packages("ISLR2")
+library(ISLR2)
+library(NHANES)
+```
+
+# Boston Dataset Analysis
+
+### Objective
+
+How can we predict the Median Value of Owner_Occupied Homes using the lower Status
+
+\<what are we analyzing? Why? What insight can we gain from this analysis.
+
+### Data Understand and preparation
+
+\<What kinds of variables do we have? What kind of questions can we answer further with this data?\>
+
+### Data Loading
+
+\<What does the summary say about this date?\>
+
+```{r load.data}
+data(Boston)
+glimpse(Boston)
+summary(Boston)
+```
+
+### Data exploration
+
+```{r missing values}
+missing_values = Boston %>%
+  summarise(across(everything(), ~ sum(is.na(.))))
+print(missing_values)
+
+```
+
+### Train-Test Split
+
+```{r train-test}
+set.seed(123) # For reproducibility
+Boston_split = Boston %>%
+  mutate(id = row_number()) %>%
+  sample_frac(0.75)
+
+Boston = Boston %>% mutate(id = row_number())
+
+train_data = Boston_split
+test_data = anti_join(Boston, Boston_split, by = "id") #Remaining 25%
+```
+
+###Exploratory Data Analysis 
+
+\<what figures did we build?Why? What information do they convey? How it is important to the analysis?\>
+
+```{r histogram for medv}
+ggplot(Boston, aes(x = medv)) +
+  geom_histogram(fill = "steelblue", binwidth = 2, color = "white") +
+  labs(title = "distribution of Median Home Values",
+       x = "Median value ($1000s)",
+       y = "Count")
+```
+
+```{r LSTAT vs MEDV Scatterplot}
+ggplot(Boston, aes(x = lstat, y=medv)) +
+  geom_point(alpha = 0.6, color = 'blue') +
+  labs(title = "Scatterplot: LSTAT vs. MEDV",
+       x = "Lower Status Population",
+       y = "Median Home Value ($1000s)")
+```
+
+### Model Implementation & Explanation
+
+\<what model are we using? why does this/these model(s) apply to the data?What are the pros & cons of this type of model? \>
+
+### Perform simple Linear Regression on Training Data
+
+\<Describe the function & model fit. maybe talk about the evaluation metrics?\>
+
+```{r Liunear Regression}
+lm.fit = lm(medv ~ lstat, data = train_data)
+summary(lm.fit)
+
+```
+
+Could built a scatter plot with this regression line onto it.
+
+### Apply Model to Test Data
+
+```{r  apply model to test_data}
+train_mse = mean((train_data$medv - predict(lm.fit, train_data))^2)
+test_mse = mean((test_data$medv - predict(lm.fit, test_data))^2)
+
+print(paste("Training MSE:", round(train_mse, 2)))
+print(paste("Test MSE:", round(test_mse, 2)))
+
+```
+
+### Simple Linear Regression results & interpretation
+
+\<Overall, how good is this fit? What does it say about the data and the question being asked?\>
+
+### Perform Multiple Linear Regression on Training Data
+
+\<what question does this model answer?\>
+
+```{r}
+lm.multiple.fit = lm(medv ~ lstat + age, data = train_data)  
+summary(lm.multiple.fit)
+```
+
+### Apply the Model to Test Data
+
+```{r}
+train_mse = mean((train_data$medv - predict(lm.multiple.fit, train_data))^2)
+test_mse = mean((test_data$medv - predict(lm.fit, test_data))^2)
+
+print(paste("Training MSE:", round(train_mse, 2)))
+print(paste("Test MSE:", round(test_mse, 2)))
+```
+
+## NHANES Data Analysis
+
+## 1. Objective
+
+This analysis aims to predict **BMI** using **Age, Smoking Status (SmokeNow), and Physical Activity (PhysActive)** for individuals aged **18-70**.
+
+### **1.1 What Are We Analyzing?**
+
+We are examining how age, smoking habits, and physical activity influence BMI. Since BMI is a key health indicator, understanding these relationships can help identify factors contributing to weight changes and overall health risks.
+
+### **1.2 Why Are We Conducting This Analysis?**
+
+An elevated BMI is associated with health risks like **diabetes, heart disease, and hypertension**. Smoking can influence metabolism and appetite, while physical activity plays a crucial role in weight regulation. By examining these relationships, we can better understand how lifestyle choices contribute to BMI variations and overall health
+
+### **1.3 What Insights Can We Gain?**
+
+This analysis investigates **how BMI changes with age, whether smoking status impacts BMI, and the role of physical activity in weight management**. The findings may help in developing personalized health strategies and informing public health initiatives to promote healthier lifestyles.
+
+## 2. Data understanding & Preparation
+
+### **2.1 Variables in the Dataset:**
+-  BMI (Continuous) - The dependent variable representing Body Mass Index.
+-  Age (Continuous) - The age of individuals, ranging from 18 to 70.
+-  SmokeNow (Categorical) - Indicates smoking status (Yes/No).
+-  PhysActive (Categorical) - Indicates whether an individual is physically active (Yes/No).
+
+### **2.2 Key Questions We Can Answer:**
+
+-   How does BMI vary with age?
+-   Is there a significant difference in BMI between smokers and non-smokers?
+-   What is the impact of physical activity on BMI?
+## 3. Data loading
+
+The dataset is loaded from the **NHANES** package, containing health-related variables. A summary of the selected data (BMI, Age, SmokeNow, PhysActive) provides insights into its distribution, missing values, and overall trends. It helps identify potential data issues, such as outliers or gaps, ensuring the dataset is clean and suitable for analysis.
+
+```{r}
+#install.packages("NHANES")
+library(NHANES)
+data(NHANES)
+
+SMOKERS = NHANES %>%
+  select(BMI, Age, SmokeNow, PhysActive) %>%
+  filter(Age >= 18 & Age <= 70)
+```
+
+##4. Data Exploration
+
+```{r}
+missing_values <- SMOKERS %>%
+  summarise(across(everything(), ~ sum(is.na(.))))
+
+print(missing_values)
+```
+##5. Handling Missing Data
+We handle missing data to avoid bias, loss of information, and poor model performance, ensuring accurate and reliable analysis.
+
+```{r}
+# Remove rows with missing or non-finite values
+SMOKERS <- SMOKERS %>%
+  filter(!is.na(BMI) & !is.na(Age) & !is.na(SmokeNow) & !is.na(PhysActive))
+
+# Confirm data cleaning
+print(nrow(SMOKERS))  # Remaining rows after cleaning
+```
+
+## 6.Train - Test Split
+Dividing the data into **training (75%) and testing (25%) sets** allows for an accurate evaluation of the model's performance on unseen data. The training set is used to develop the model, while the test set measures how well it generalizes to new data. This approach helps prevent **overfitting**, ensuring that the model learns meaningful patterns rather than simply memorizing the training data.
+
+```{r}
+# Set seed for reproducibility
+set.seed(123)
+
+# Add the 'id' column to the original dataset (SMOKERS)
+SMOKERS <- SMOKERS %>% mutate(id = row_number())
+
+# Split the data into 75% training and 25% testing
+SMOKERS_split <- SMOKERS %>%
+  sample_frac(0.75)  # 75% for training data
+
+# The remaining 25% will be for testing
+test_data <- anti_join(SMOKERS, SMOKERS_split, by = "id")  # Join using 'id' column
+train_data <- SMOKERS_split
+```
+
+## 7. Exploratory Data Analysis
+In EDA, we use visualizations like histograms, box plots, and scatter plots to assess data distribution, relationships, and patterns, guiding analysis decisions.
+```{r}
+#plot the distribution of BMI
+library(ggplot2)
+ggplot(SMOKERS, aes(x = BMI)) +
+  geom_histogram(fill = "Steelblue", binwidth = 5, color = "white") +
+  labs(title = "Distribution of BMI", x = "BMI", y = "Count")
+```
+
+## **7.1 Scatterplot: Age vs. BMI**
+
+This helps in visualizing the relationship between **Age** and **BMI**.
+
+```{r}
+#scatterplot Age vs BMI
+ggplot(SMOKERS, aes(x = SmokeNow, y = BMI)) +
+  geom_boxplot(fill = "Steelblue", color = "white") +
+  labs(title = "Boxplot: SmokeNow vs. BMI", x = "SmokeNow", y = "BMI")
+
+```
+
+## **7.2 Scatterplot: SmokeNow vs. BMI**
+A scatterplot of SmokeNow vs. BMI visualizes the relationship between smoking status and body mass index, helping identify any patterns or correlations.
+
+```{r}
+#scatterplot SMOKERS vs BMI
+ggplot(SMOKERS, aes(x = SmokeNow, y = BMI)) +
+  geom_boxplot(fill = "Steelblue", color = "white") +
+  labs(title = "Boxplot: SmokeNow vs. BMI", x = "SmokeNow", y = "BMI")
+```
+
+## **Model Implementation**  
+
+We employ **Simple Linear Regression** as it efficiently predicts a continuous target variable based on a linear relationship with a single predictor. This method is straightforward and computationally fast, though it is sensitive to outliers and constrained by its assumption of linearity.  
+
+### **Applying Simple Linear Regression to Training Data**  
+
+Simple linear regression fits a line to the data by minimizing the squared errors between actual and predicted values. The model's performance is assessed using evaluation metrics such as:  
+
+- **Mean Squared Error (MSE):** Measures the average squared difference between actual and predicted values, reflecting prediction accuracy.  
+- **R-squared (R²):** Indicates how well the model explains the variance in the target variable.  
+
+```{r}
+lm.fit <- lm(BMI ~ Age, data = train_data)
+#view model summary
+summary(lm.fit)
+```
+
+### Apply Model to Text Data
+
+```{r}
+train_mse = mean((train_data$BMI - predict(lm.fit, train_data))^2)
+test_mse = mean((test_data$BMI - predict(lm.fit, test_data))^2)
+
+print(paste("Training MSE:", round(train_mse, 2)))
+print(paste("Test MSE:", round(test_mse, 2)))
+```
+### **Simple Linear Regression Results & Interpretation**  
+
+- **Training MSE: 42.98**  
+  The model's average squared error on the training data is 42.98, indicating a moderate level of fit.  
+
+- **Test MSE: 34.98**  
+  The model performs slightly better on the test data, with an average squared error of 34.98, suggesting it generalizes well to unseen data.  
+
+- **Conclusion:**  
+  The model demonstrates a reasonable fit without significant overfitting, as the Training and Test MSEs are relatively close. However, performance could be enhanced by incorporating additional predictors or exploring more complex modeling approaches.
+### Perform Multiple Linear Regression on Training Data
+
+```{r}
+
+lm.multiple.fit = lm(BMI ~ Age + SmokeNow + PhysActive, data = train_data)  
+summary(lm.multiple.fit)
+
+```
+### Apply the Model to Test Data
+
+```{r}
+train_mse = mean((train_data$BMI - predict(lm.multiple.fit, train_data))^2)
+test_mse = mean((test_data$BMI - predict(lm.multiple.fit, test_data))^2)
+
+print(paste("Training MSE:", round(train_mse, 2)))
+print(paste("Test MSE:", round(test_mse, 2)))
+
+```
+### **Multiple Linear Regression Results & Interpretation**
+
+-   **Training MSE: 41.57**\
+    The model has an average squared error of 41.57 on the training data, indicating a decent fit, but there's still room for improvement.
+
+-   **Test MSE: 33.69**\
+    The model performs slightly better on the test data with an average squared error of 33.69, suggesting good generalization to unseen data.
+
+-   **Conclusion**: The **Multiple Linear Regression** model provides a better fit compared to the **Simple Linear Regression**, as the **Test MSE** is lower. The model is not overfitting, and it seems to generalize well. However, further improvements could be made by considering additional predictor variables or more advanced techniques.
+
+
