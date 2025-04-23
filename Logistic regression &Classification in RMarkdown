@@ -1,0 +1,136 @@
+---
+title: "Lecture 7"
+author: "vosmin shaik"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+
+Diabetes is a chronic disease affecting millions of individuals worldwide. Early detection through predictive modeling can help guide prevention and treatment. We use the Pima Indians Diabetes Dataset from the `mlbench` package to build classification models.
+
+```{r}
+# Load required packages
+# install.packages("mlbench")                                                         
+# install.packages("caret")
+# install.packages("class")
+# install.packages("dplyr")
+
+library(mlbench)
+library(caret)
+#stop(packageNotFoundError(package, lib.loc, sys.call()))
+library(class)
+library(dplyr)
+
+# Load data
+data("PimaIndiansDiabetes")
+df <- PimaIndiansDiabetes
+
+# Overview
+glimpse(df)
+```
+
+## Simple Logistic Regression
+
+### Train/Test Split and Model Fit
+
+```{r}
+set.seed(42)
+index <- createDataPartition(df$diabetes, p = 0.7, list = FALSE)
+train <- df[index, ]
+test <- df[index, ]
+
+# Fit logistic regression using glucose
+model_simple <- glm(diabetes ~ glucose, data = train, family = binomial)
+summary(model_simple)
+```
+
+### Prediction & Evaluation
+
+```{r}
+# Predict on test data
+pred_probs <- predict(model_simple, newdata = test, type = "response")
+pred_class <- factor(ifelse(pred_probs > 0.5, "pos", "neg"), levels = c("neg", "pos"))
+
+# Confusion Matrix
+confusionMatrix(pred_class, test$diabetes)
+```
+
+## Multiple Logistic Regression
+
+### Model Fit
+
+```{r}
+# Fit model with multiple predictors
+model_multi <- glm(diabetes ~ pregnant + glucose + age, data = train, family = "binomial")
+#glm(diabetes ~ pregnant + glucose + bmi + age, data = train,
+#eval(mf, parent.frame())
+#eval(mf, parent.frame())
+#stats::model.frame(formula = diabetes ~ pregnant + glucose +
+#bmi + age, data = train, drop.unused.levels = TRUE)
+#model.frame.default(formula = diabetes ~ pregnant + glucose +
+#bmi + age, data = train, drop.unused.levels = TRUE)
+#eval(predvars, data, env)
+#eval(predvars, data, env)
+
+
+summary(model_multi)
+```
+
+### Prediction & Evaluation
+
+```{r}
+# Predict
+multi_probs <- predict(model_multi, newdata = test, type = "response")
+multi_pred <- factor(ifelse(multi_probs > 0.5, "pos", "neg"),levels = c("neg", "pos"))
+
+# Confusion Matrix
+confusionMatrix(multi_pred, test$diabetes)
+```
+
+## K-Nearest Neighbors (KNN)
+
+### Data Preparation
+
+```{r}
+# Normalize selected predictors
+normalize <- function(x) (x - min(x)) / (max(x) - min(x))
+
+df_norm <- df %>%
+  mutate(across(c(glucose, age, pregnant), normalize))
+
+# Recreate train/test splits
+train_norm <- df_norm[index, ]
+test_norm <- df_norm[-index, ]
+
+train_knn <- train_norm %>% select(glucose, age, pregnant)
+test_knn <- test_norm %>% select(glucose, age, pregnant)
+
+#lables
+train_labels <- train_norm$diabetes
+test_labels <- test_norm$diabetes
+
+
+```
+
+### Model Fit and Prediction
+
+```{r}
+# KNN model with k = 5
+set.seed(42)
+knn_pred <- knn(train_knn, test_knn, cl = train_labels, k = 5)
+
+# Confusion Matrix
+confusionMatrix(knn_pred, test_labels)
+
+```
+
+## Model Comparison and Discussion
+
+- **Simple Logistic Regression:** Only used glucose. Gives insight into how one variable affects diabetes prediction.
+- **Multiple Logistic Regression:** Includes more predictors (glucose, age, BMI, pregnant), and generally gives better performance due to more context.
+- **KNN Classification:** Non-parametric model based on similarity. Performance depends on the choice of k and data scaling.
+- **Recommendation:** Multiple logistic regression is interpretable and often effective. KNN might slightly improve performance but is less interpretable.
